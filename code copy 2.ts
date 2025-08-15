@@ -1,11 +1,11 @@
 import { LOGO_SVG } from "./brandAssets";
 
-// --------------------------- COVER THUMBNAIL ---------------------------
+// Runs this code only in Figma design files
 if (figma.editorType === "figma") {
   async function createCoverThumbnail(coverPage: PageNode) {
-    await figma.loadFontAsync({ family: "Roboto", style: "Regular" }).catch((_e) => {});
-    await figma.loadFontAsync({ family: "Roboto", style: "Medium" }).catch((_e) => {});
-    await figma.loadFontAsync({ family: "Roboto", style: "Bold" }).catch((_e) => {});
+    await figma.loadFontAsync({ family: "Roboto", style: "Regular" }).catch(() => {});
+    await figma.loadFontAsync({ family: "Roboto", style: "Medium" }).catch(() => {});
+    await figma.loadFontAsync({ family: "Roboto", style: "Bold" }).catch(() => {});
 
     // Find or create the main 1600x900 frame
     let thumb = coverPage.children.find(
@@ -22,19 +22,19 @@ if (figma.editorType === "figma") {
     thumb.x = 0;
     thumb.y = 0;
     thumb.clipsContent = true;
-    thumb.fills = [{ type: "SOLID", color: hex("#D2EB7F") }];
+    thumb.fills = [{ type: "SOLID", color: hex("#D2EB7F") }]; // lime background
     thumb.strokes = [];
     thumb.effects = [];
-    thumb.layoutMode = "NONE";
+    thumb.layoutMode = "NONE"; // free placement inside
 
-    // Logo from shared SVG
+    // create the logo from the shared SVG
     const logoNode = figma.createNodeFromSvg(LOGO_SVG);
     logoNode.name = "Logo";
     thumb.appendChild(logoNode);
     logoNode.x = 100;
     logoNode.y = 100;
 
-    // ---- Content Wrapper ----
+    // ---- Content Wrapper: [ ASSET TYPE ] ----
     let contentWrapper = thumb.findOne(
       (n) => n.name === "Content Wrapper" && n.type === "FRAME"
     ) as FrameNode | null;
@@ -51,7 +51,6 @@ if (figma.editorType === "figma") {
     contentWrapper.x = 100;
     contentWrapper.y = 481;
 
-    // ---- Asset Pill ----
     let assetTypeWrapper = thumb.findOne(
       (n) => n.name === "Asset Type Wrapper" && n.type === "FRAME"
     ) as FrameNode | null;
@@ -92,7 +91,6 @@ if (figma.editorType === "figma") {
       assetTypeWrapper.appendChild(assetTypeText);
     }
 
-    // ---- Project Name ----
     let projectNameText = contentWrapper.findOne(
       (n) => n.name === "Project Name" && n.type === "TEXT"
     ) as TextNode | null;
@@ -111,9 +109,10 @@ if (figma.editorType === "figma") {
       contentWrapper.appendChild(projectNameText);
     }
 
+    // Optional: select the thumbnail so you see it
     figma.currentPage.selection = [thumb];
 
-    // --- helpers (scoped) ---
+    // Helpers (scoped to thumbnail creation)
     async function applyText(
       node: TextNode,
       name: string,
@@ -125,13 +124,16 @@ if (figma.editorType === "figma") {
       colorHex?: string
     ) {
       await figma.loadFontAsync({ family: fontFamily, style });
+
       node.fontName = { family: fontFamily, style };
       node.name = name;
       node.characters = text;
       node.fontSize = size;
       node.letterSpacing = letterSpacing;
       node.lineHeight = { unit: "AUTO" };
-      if (colorHex) node.fills = [{ type: "SOLID", color: hex(colorHex) }];
+      if (colorHex) {
+        node.fills = [{ type: "SOLID", color: hex(colorHex) }];
+      }
     }
 
     function hex(hexStr: string): RGB {
@@ -145,7 +147,7 @@ if (figma.editorType === "figma") {
     }
   }
 
-  // --------------------------- DESIRED STRUCTURE ---------------------------
+  // ---------- Desired structure ----------
   const STRUCTURE: Array<{ type: "page" | "divider"; name?: string }> = [
     { type: "page", name: "Cover" },
     { type: "divider" },
@@ -164,10 +166,10 @@ if (figma.editorType === "figma") {
   ];
 
   const EXTRA_PAGE_NAME = "Page";
-  const MAX_TOTAL_PAGES = 300;
+  const MAX_TOTAL_PAGES = 300; // cap so we don't explode the file
 
-  // --------------------------- HELPERS (global) ---------------------------
-  type RootChild = PageNode | any;
+  // ---------- Helpers ----------
+  type RootChild = PageNode | any; // keep compatibility even if typings lack PageDividerNode
 
   function isDivider(n: any): boolean {
     return n && n.type === "PAGE_DIVIDER";
@@ -187,33 +189,22 @@ if (figma.editorType === "figma") {
     else parent.insertChild(index, node as any);
   }
 
-  // NEW: pool existing pages by name so duplicates are handled in order
-  function buildPagePools(): Map<string, PageNode[]> {
-    const pools = new Map<string, PageNode[]>();
-    for (const n of figma.root.children) {
-      if (n.type !== "PAGE") continue;
-      const name = (n as PageNode).name;
-      if (!pools.has(name)) pools.set(name, []);
-      pools.get(name)!.push(n as PageNode);
-    }
-    return pools;
-  }
-
-  // Find the second "  V0 - [Date]" page
-  function getFirstV0DatePage(): PageNode | null {
+  // Find the *second* page named "  V0 - [Date]"
+  function getSecondV0DatePage(): PageNode | null {
     const matches = figma.root.children.filter(
       (n) => n.type === "PAGE" && (n as PageNode).name === "  V0 - [Date]"
     ) as PageNode[];
-    return matches.length >= 2 ? matches[0] : null;
+    return matches.length >= 2 ? matches[1] : null;
   }
 
-  // Create N slides on a page
+  // Create N slide frames on a page, arranged in a grid
   function createSlidesOnPage(page: PageNode, count: number) {
     const W = 1920,
-      H = 1080;
-    const GAP = 100;
-    const START_X = 0,
-      START_Y = 0;
+          H = 1080; // slide size
+    const COLS = 3; // layout columns
+    const GAP = 80; // spacing
+    const START_X = 96,
+      START_Y = 96;
 
     for (let i = 0; i < count; i++) {
       const f = figma.createFrame();
@@ -222,59 +213,60 @@ if (figma.editorType === "figma") {
       f.clipsContent = true;
       f.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
 
-      f.x = START_X;
-      f.y = START_Y + i * (H + GAP);
+      const col = i % COLS;
+      const row = Math.floor(i / COLS);
+      f.x = START_X + col * (W + GAP);
+      f.y = START_Y + row * (H + GAP);
 
       page.appendChild(f);
     }
   }
 
-  // --------------------------- MAIN ---------------------------
+  // ---------- Main ----------
   figma.on("run", async () => {
-    // UI first; wait for user's number before doing anything
+    // 1) Show the UI and wait for the user's number
     figma.showUI(__html__, { width: 320, height: 320 });
 
+    // 2) Handle the submit from UI and ONLY THEN run everything
     figma.ui.onmessage = async (msg) => {
       if (msg?.type !== "create-pitch-slides") return;
 
       const count = Math.max(1, Math.min(200, Number(msg.count) || 0));
 
-      // 1) Pools
+      // --- Reuse existing REAL dividers (type === "PAGE_DIVIDER")
       const dividerPool: any[] = figma.root.children.filter(isDivider) as any[];
-      const pagePools = buildPagePools(); // <-- key fix for duplicate names
 
-      // 2) Ensure items exist (consume from pools in order)
+      // 1) Ensure items exist (append if missing)
       const orderedNodes: RootChild[] = STRUCTURE.map((item) => {
         if (item.type === "page") {
-          const name = item.name ?? "Untitled";
-          const bucket = pagePools.get(name);
-          let p: PageNode | undefined;
-          if (bucket && bucket.length) {
-            p = bucket.shift()!;
-          } else {
+          let p = item.name ? findPageByName(item.name) : null;
+          if (!p) {
             p = figma.createPage();
-            p.name = name;
+            if (item.name) p.name = item.name;
             figma.root.appendChild(p);
+          } else if (item.name && p.name !== item.name) {
+            p.name = item.name; // normalize
           }
           return p;
         } else {
+          // divider
           let d = dividerPool.shift();
           if (!d) {
-            d = (figma as any).createPageDivider(); // use figma.createPageDivider() when typings update
+            d = (figma as any).createPageDivider(); // when typings update, use figma.createPageDivider()
             figma.root.appendChild(d);
           }
           return d;
         }
       });
 
-      // 3) Reorder to match STRUCTURE
+      // 2) Reorder them safely to match STRUCTURE
       orderedNodes.forEach((node, i) => {
         if (figma.root.children[i] !== node) {
           safeInsertAtIndex(figma.root, i, node);
         }
       });
 
-      // 4) Append extra "Page" pages after the structure
+      // 3) Append extra "Page" pages up to the cap
       let created = 0;
       while (figma.root.children.length < MAX_TOTAL_PAGES) {
         try {
@@ -283,12 +275,12 @@ if (figma.editorType === "figma") {
           figma.root.appendChild(extra);
           created++;
         } catch (_err) {
-          break;
+          break; // stop if Figma refuses more pages
         }
       }
 
-      // 5) Slides on second "  V0 - [Date]"
-      let target = getFirstV0DatePage();
+      // 4) Create slides on the second "  V0 - [Date]" page
+      let target = getSecondV0DatePage();
       if (!target) {
         figma.notify('Could not find a second page named "  V0 - [Date]". Creating one.');
         target = figma.createPage();
@@ -298,7 +290,7 @@ if (figma.editorType === "figma") {
       await figma.setCurrentPageAsync(target);
       createSlidesOnPage(target, count);
 
-      // 6) Build the Cover page thumbnail
+      // 5) Build the Cover page thumbnail
       const cover = findPageByName("Cover");
       if (cover) {
         await figma.setCurrentPageAsync(cover);
@@ -308,12 +300,13 @@ if (figma.editorType === "figma") {
       figma.notify(
         `Structure applied. Created ${count} slides + any extra "${EXTRA_PAGE_NAME}" pages if needed.`
       );
+
       figma.closePlugin();
     };
   });
 }
 
-// Slides env (no-op)
+// (Optional) Slides environment — nothing for now
 if (figma.editorType === "slides") {
   // no-op
 }

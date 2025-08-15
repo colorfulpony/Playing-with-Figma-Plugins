@@ -1,17 +1,27 @@
-<h2>Shape Creator</h2>
-<p>Count: <input id="count" type="number" value="5"></p>
-<button id="create">Create</button>
-<button id="cancel">Cancel</button>
-<script>
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { font: 13px/1.4 Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 16px; }
+      label { display:block; margin-bottom: 8px; }
+      input[type="number"] { width: 100%; padding: 8px; box-sizing: border-box; }
+      button { margin-top: 12px; padding: 8px 12px; }
+      .hint { color:#666; margin-top: 6px; }
+    </style>
+  </head>
+  <body>
+    <label>How many slides for the Pitch Deck?</label>
+    <input id="count" type="number" min="1" max="200" value="10" />
+    <div class="hint">Creates that many 1920×1080 frames on the second page named “&nbsp;&nbsp;V0 - [Date]”.</div>
+    <button id="go">Create slides</button>
 
-document.getElementById('create').onclick = () => {
-  const textbox = document.getElementById('count');
-  const count = parseInt(textbox.value, 10);
-  parent.postMessage({ pluginMessage: { type: 'create-shapes', count } }, '*')
-}
-
-document.getElementById('cancel').onclick = () => {
-  parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*')
-}
-
-</script>
+    <script>
+      document.getElementById('go').addEventListener('click', () => {
+        const n = parseInt(document.getElementById('count').value, 10);
+        if (Number.isNaN(n) || n <= 0) return alert('Enter a positive number.');
+        parent.postMessage({ pluginMessage: { type: 'create-pitch-slides', count: n } }, '*');
+      });
+    </script>
+  </body>
+</html>
